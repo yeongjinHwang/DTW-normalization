@@ -2,12 +2,14 @@ import cv2
 import mediapipe as mp
 import numpy as np
 import matplotlib.pyplot as plt
+import sys
 
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
 mp_pose = mp.solutions.pose
 IMAGE_FILES = []
 BG_COLOR = (192, 192, 192) # gray
+
 with mp_pose.Pose(
     static_image_mode=True,
     model_complexity=2,
@@ -42,10 +44,8 @@ with mp_pose.Pose(
 
 
 ####################################video data road####################################
-x = [[], [], [], [], [], [], []] # (7, f, 33)
-y = [[], [], [], [], [], [], []]
-tmpx=[]
-tmpy=[]
+x, y = [[], [], [], [], [], [], []], [[], [], [], [], [], [], []]  # (7, f, 33)
+tmpx, tmpy = [], []
 videoNum=7
 
 for i in range(1,videoNum+1):
@@ -86,6 +86,7 @@ for i in range(1,videoNum+1):
                 if cv2.waitKey(5) & 0xFF == 27:
                     break
             cap.release()
+cv2.destroyAllWindows()
 print("width:%d,height:%d"%(width,height))
 print('data set complete')
 #x[0] 첫번째영상 x[1] 두번째 영상, x[0][0] 첫 영상 첫프레임의 33개 데이터
@@ -94,8 +95,8 @@ print('data set complete')
 
 videoEachFrame=[len(x[0]),len(x[1]),len(x[2]),len(x[3]),len(x[4]),len(x[5]),len(x[6])]
 
-for i in range(videoNum):
-    if i==0:
+for i in range(videoNum) :
+    if i==0 :
         print('videoFrame : ',end=' ')
     print(videoEachFrame[i],end=' ')
     if i==6 :
@@ -104,7 +105,7 @@ for i in range(videoNum):
 ####################################data(x,y)->data(angle)####################################
 import math
 
-def angle_of_vectors(vec1,vec2):
+def angle_of_vectors(vec1,vec2) :
     a,b,c,d=vec1[0],vec1[1],vec2[0],vec2[1]
     dotProduct = a*c + b*d
     modOfVector1 = math.sqrt( a*a + b*b)*math.sqrt(c*c + d*d) 
@@ -121,16 +122,16 @@ matchIndex=[[12,11],[12,24],[11,23],[24,23],[24,26],[23,25],[26,28],[25,27],[28,
            [12,14],[11,13],[14,16],[13,15]]
 
 #x[video][frame][angle]
-#angle = [[[a1...a14], frame], ... video]
+#angle = [video][frame][angle1...angle14]
 angle = [[], [], [], [], [], [], []]
 
-for i in range(videoNum):
-    for frameNum in range(videoEachFrame[i]):
+for i in range(videoNum) :
+    for frameNum in range(videoEachFrame[i]) :
         temp = []
         for idx in range(len(matchIndex)):
-            temp.append(angle_of_vectors([x[i][frameNum][matchIndex[idx][0]],y[i][frameNum][matchIndex[idx][0]]],[x[i][frameNum][matchIndex[idx][1]],y[i][frameNum][matchIndex[idx][1]]]))
+            temp.append(angle_of_vectors([x[i][frameNum][matchIndex[idx][0]],y[i][frameNum][matchIndex[idx][0]]],
+            [x[i][frameNum][matchIndex[idx][1]],y[i][frameNum][matchIndex[idx][1]]]))
         angle[i].append(temp)
-        
 ####################################DTW####################################
 
 from matplotlib.patches import ConnectionPatch
@@ -173,66 +174,125 @@ def dp(dist_mat):
     cost_mat = cost_mat[1:, 1:]
     return (path[::-1], cost_mat)
 
-x = np.asarray(angle[0])                                 
-y = np.asarray(angle[1])                                   
-N = videoEachFrame[0]
-M = videoEachFrame[1]
-dist_mat = np.zeros((N, M))
-
+# x = np.asarray(angle[0])                                 
+# y = np.asarray(angle[1])                                   
+# N = videoEachFrame[0]
+# M = videoEachFrame[1]
+dist_mat, N, M, path= [],[],[],[]
+for i in range(videoNum-1) :
+    dist_mat.append(np.zeros((videoEachFrame[i],videoEachFrame[i+1])))
+    N.append(videoEachFrame[i])
+    M.append(videoEachFrame[i+1])
+# print(N, M)
+# print(dist_mat[0])
 ####################################TOTAL average DTW####################################
-totalPath=[]
-totalcost=[]
-for k in range(len(matchIndex)):
-    for i in range(N):
-        for j in range(M):
-            dist_mat[i, j] = abs(x[i][k] - y[j][k]) #0 video shoulder vs 1 video shoulder
-    path, cost_mat = dp(dist_mat)
-    totalPath.append(path)
-    totalcost.append(cost_mat)
+cost_mat = [[],[],[],[],[],[]] # cost_mat[video][joint][videoframe][video+1frame]
+for num in range(len(dist_mat)) : 
+    for k in range(len(matchIndex)) :
+        for i in range(N[num]) :
+            for j in range(M[num]) :
+                dist_mat[num][i, j] = abs(angle[num][i][k] - angle[num+1][j][k]) #0 video shoulder vs 1 video shoulder
+        cost_mat[num].append(dp(dist_mat[num])[1])
+        
+cost_mat = np.asarray(cost_mat,dtype=object)
+averageCostMat, path, least = [], [], []
 
-totalCostMap=0
-for i in range(len(matchIndex)):
-    totalCostMap=totalCostMap+totalcost[i][:,:]
-totalCostMap = totalCostMap/len(matchIndex)
-totalCostMap = np.asarray(totalCostMap)
+for num in range(len(cost_mat)) :
+    averageCostMat.append([])
+    for joint in range(1,len(matchIndex)): 
+        cost_mat[num][0][:,:]=cost_mat[num][0][:,:]+cost_mat[num][joint][:,:]
+    cost_mat[num][0]=cost_mat[num][0]/len(matchIndex)
+    averageCostMat[num] = cost_mat[num][0]
 
-least=totalCostMap[-1,-1]
-path=[(totalCostMap.shape[0]-1,totalCostMap.shape[1]-1)]
+def reversePathFind(averMat) :
+    i = averMat.shape[0]-1
+    j = averMat.shape[1]-1
+    print(i,j)
+    if i==0 or j==0 :
+        print('영상을 최소 2frame 이상 실행시켜주세요.')
+        sys.exit()
+    findPath = [(i,j)]
+    while i>0 or j>0:
+        a= averMat[i-1,j-1]
+        b= averMat[i,j-1]
+        c= averMat[i-1,j]
+        if min(a,b,c)==a:
+            i=i-1
+            j=j-1
+        elif min(a,b,c)==b:
+            j=j-1
+        elif min(a,b,c)==c:
+            i=i-1
+        findPath.append((i,j))
+    return list(reversed(findPath))
 
-i=totalCostMap.shape[0]-1
-j=totalCostMap.shape[1]-1
+path = []
+for num in range(len(averageCostMat)) :
+    path.append( reversePathFind(averageCostMat[num]) )
+    path[num] = np.asarray(path[num],dtype=object)
+path = np.asarray(path,dtype=object)
 
-while i>0 or j>0:
-    a= totalCostMap[i-1,j-1]
-    b= totalCostMap[i,j-1]
-    c= totalCostMap[i-1,j]
-    if min(a,b,c)==a:
-        i=i-1
-        j=j-1
-    elif min(a,b,c)==b:
-        j=j-1
-    elif min(a,b,c)==c:
-        i=i-1
-    path.append((i,j))
-path.reverse()
-print('dtw len : ',len(path))
+# print(len(cost_mat),len(cost_mat[0]),len(cost_mat[0][0]),len(cost_mat[0][0][0]))     
+# cost_mat = np.ndarray(cost_mat)
+# cost_mat=float(cost_mat)
+# print(len(cost_mat),len(cost_mat[0]),len(cost_mat[0][0]))
+# totalCostMat=[[],[],[],[],[],[]]
+
+# totalCostMap=[[],[],[],[],[],[]]
+# for i in range(len(matchIndex)):
+#     totalCostMap[]=totalCostMap+totalcost[i][:,:]
+# totalCostMap = totalCostMap/len(matchIndex)
+# totalCostMap = np.asarray(totalCostMap)
+# path=[(totalCostMap.shape[0]-1,totalCostMap.shape[1]-1)]
+# i=totalCostMap.shape[0]-1
+# j=totalCostMap.shape[1]-1
+
+# while i>0 or j>0:
+#     a= totalCostMap[i-1,j-1]
+#     b= totalCostMap[i,j-1]
+#     c= totalCostMap[i-1,j]
+#     if min(a,b,c)==a:
+#         i=i-1
+#         j=j-1
+#     elif min(a,b,c)==b:
+#         j=j-1
+#     elif min(a,b,c)==c:
+#         i=i-1
+#     path.append((i,j))
+# path.reverse()
+# print('dtw len : ',len(path))
+
+####################################Link index####################################
+
+LinkPath = []
+for num in range(1,len(path)) :
+    print(num-1)
+    for index in path[num-1][:,num] :
+        for index2 in path[num][:,0] :
+
+
 
 ####################################Video execute####################################
-video = "../video/front1.mp4"
-video2 = "../video/front2.mp4"
-cap = cv2.VideoCapture(video)
-cap2 = cv2.VideoCapture(video2)
-frame=0
-while frame<len(path):
-    cap.set(cv2.CAP_PROP_POS_FRAMES, path[frame][0])
-    cap2.set(cv2.CAP_PROP_POS_FRAMES, path[frame][1])
-    success, image = cap.read()
-    success2, image2 = cap2.read()
-    img = cv2.hconcat([image, image2]) 
-    if not (success or success2):
-        break
-    cv2.imshow("VideoFrame",img)
-    frame+=1
-    if cv2.waitKey(5) & 0xFF == 27:
-        break
-cap.release()
+video,cap = [], []
+
+for num in range(videoNum) :
+    video.append(f"../video/front{num+1}.mp4")
+    cap.append(cv2.VideoCapture(video[num]))
+# video = "../video/front1.mp4"
+# video2 = "../video/front2.mp4"
+# cap = cv2.VideoCapture(video)
+# cap2 = cv2.VideoCapture(video2)
+# frame=0
+# while frame<len(path):
+#     cap.set(cv2.CAP_PROP_POS_FRAMES, path[frame][0])
+#     cap2.set(cv2.CAP_PROP_POS_FRAMES, path[frame][1])
+#     success, image = cap.read()
+#     success2, image2 = cap2.read()
+#     img = cv2.hconcat([image, image2]) 
+#     if not (success or success2):
+#         break
+#     cv2.imshow("VideoFrame",img)
+#     frame+=1
+#     if cv2.waitKey(5) & 0xFF == 27:
+#         break
+# cap.release()
