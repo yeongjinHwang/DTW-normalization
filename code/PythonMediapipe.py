@@ -174,27 +174,24 @@ def dp(dist_mat):
     cost_mat = cost_mat[1:, 1:]
     return (path[::-1], cost_mat)
 
-# x = np.asarray(angle[0])                                 
-# y = np.asarray(angle[1])                                   
-# N = videoEachFrame[0]
-# M = videoEachFrame[1]
 dist_mat, N, M, path= [],[],[],[]
 for i in range(videoNum-1) :
-    dist_mat.append(np.zeros((videoEachFrame[i],videoEachFrame[i+1])))
-    N.append(videoEachFrame[i])
+    dist_mat.append(np.zeros((videoEachFrame[0],videoEachFrame[i+1])))
+    N.append(videoEachFrame[0])
     M.append(videoEachFrame[i+1])
-# print(N, M)
-# print(dist_mat[0])
+
 ####################################TOTAL average DTW####################################
 cost_mat = [[],[],[],[],[],[]] # cost_mat[video][joint][videoframe][video+1frame]
 for num in range(len(dist_mat)) : 
     for k in range(len(matchIndex)) :
         for i in range(N[num]) :
             for j in range(M[num]) :
-                dist_mat[num][i, j] = abs(angle[num][i][k] - angle[num+1][j][k]) #0 video shoulder vs 1 video shoulder
+                dist_mat[num][i, j] = abs(angle[0][i][k] - angle[num+1][j][k]) 
         cost_mat[num].append(dp(dist_mat[num])[1])
-        
-cost_mat = np.asarray(cost_mat,dtype=object)
+
+for num in range(len(cost_mat)):
+    cost_mat[num] = np.asarray(cost_mat[num],dtype=object)
+
 averageCostMat, path, least = [], [], []
 
 for num in range(len(cost_mat)) :
@@ -207,7 +204,6 @@ for num in range(len(cost_mat)) :
 def reversePathFind(averMat) :
     i = averMat.shape[0]-1
     j = averMat.shape[1]-1
-    print(i,j)
     if i==0 or j==0 :
         print('영상을 최소 2frame 이상 실행시켜주세요.')
         sys.exit()
@@ -230,54 +226,40 @@ path = []
 for num in range(len(averageCostMat)) :
     path.append( reversePathFind(averageCostMat[num]) )
     path[num] = np.asarray(path[num],dtype=object)
-path = np.asarray(path,dtype=object)
-
-# print(len(cost_mat),len(cost_mat[0]),len(cost_mat[0][0]),len(cost_mat[0][0][0]))     
-# cost_mat = np.ndarray(cost_mat)
-# cost_mat=float(cost_mat)
-# print(len(cost_mat),len(cost_mat[0]),len(cost_mat[0][0]))
-# totalCostMat=[[],[],[],[],[],[]]
-
-# totalCostMap=[[],[],[],[],[],[]]
-# for i in range(len(matchIndex)):
-#     totalCostMap[]=totalCostMap+totalcost[i][:,:]
-# totalCostMap = totalCostMap/len(matchIndex)
-# totalCostMap = np.asarray(totalCostMap)
-# path=[(totalCostMap.shape[0]-1,totalCostMap.shape[1]-1)]
-# i=totalCostMap.shape[0]-1
-# j=totalCostMap.shape[1]-1
-
-# while i>0 or j>0:
-#     a= totalCostMap[i-1,j-1]
-#     b= totalCostMap[i,j-1]
-#     c= totalCostMap[i-1,j]
-#     if min(a,b,c)==a:
-#         i=i-1
-#         j=j-1
-#     elif min(a,b,c)==b:
-#         j=j-1
-#     elif min(a,b,c)==c:
-#         i=i-1
-#     path.append((i,j))
-# path.reverse()
-# print('dtw len : ',len(path))
+path = np.asarray(path,dtype=object) # path[6][baseVideoMatchingIndex][MatchingVideoIndex]
 
 ####################################Link index####################################
+LinkPath = np.zeros((len(path[0]), videoNum))
+for index in range(len(LinkPath)) :
+    LinkPath[index][0] = path[0][index][0]
+    LinkPath[index][1] = path[0][index][1]
 
-LinkPath = []
-for num in range(1,len(path)) :
-    print(num-1)
-    for index in path[num-1][:,num] :
-        for index2 in path[num][:,0] :
-
-
-
+for num in range(1,len(path)):
+    for index in range(len(LinkPath)) :
+        for index2 in range(min(len(LinkPath),len(path[num]))) :
+                if LinkPath[index][0] == path[num][index2][0] :
+                    LinkPath[index][num+1] = path[num][index2][1]
+# print(path)
+print(LinkPath)
 ####################################Video execute####################################
 video,cap = [], []
-
+image = []
 for num in range(videoNum) :
     video.append(f"../video/front{num+1}.mp4")
     cap.append(cv2.VideoCapture(video[num]))
+    image.append(0)
+frame = 0
+while frame<len(LinkPath) :
+    for num in range(videoNum) :
+        cap[num].set(cv2.CAP_PROP_POS_FRAMES,LinkPath[frame][num])
+        image[num]=cap[num].read()[1]
+    img = cv2.hconcat([image[0],image[1],image[2],image[3],image[4],image[5],image[6]])
+    cv2.imshow("Video",img)
+    frame+=1
+    print(frame)
+    if cv2.waitKey(5) & 0xFF == 'q' :
+        break
+cap.release()
 # video = "../video/front1.mp4"
 # video2 = "../video/front2.mp4"
 # cap = cv2.VideoCapture(video)
