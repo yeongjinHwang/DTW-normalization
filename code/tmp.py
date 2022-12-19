@@ -11,9 +11,5 @@ path=np.asarray(path)
 print(type(path[0]))
 print(path[0][:,1])
 
-
-LinkPath=[]
-tmp=[path[0][0],path[0][1]]
-print(tmp)
-LinkPath.append(tmp)
-print(LinkPath)
+LinkPath = np.zeros((10,10))
+print(LinkPath[:][0])

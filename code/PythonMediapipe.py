@@ -42,14 +42,15 @@ with mp_pose.Pose(
     mp_drawing.plot_landmarks(
         results.pose_world_landmarks, mp_pose.POSE_CONNECTIONS)
 
-
+videoPath = "../video/"
+videoName = "front"
+videoNum=7
 ####################################video data road####################################
 x, y = [[], [], [], [], [], [], []], [[], [], [], [], [], [], []]  # (7, f, 33)
 tmpx, tmpy = [], []
-videoNum=7
 
 for i in range(1,videoNum+1):
-    video = "../video/front%d.mp4" % (i) 
+    video = videoPath + videoName + "%d.mp4" % (i) 
     cap = cv2.VideoCapture(video)
     width  = int(cap.get(3)) # float
     height = int(cap.get(4)) # float
@@ -93,9 +94,10 @@ print('data set complete')
 #x[0][0][0] 첫 영상 첫 프레임 0번관절 x[0][0][1] 첫 영상 첫프레임 1번관절
 #x[0][:][0] 첫 영상 모든 프레임 0번관절
 
-videoEachFrame=[len(x[0]),len(x[1]),len(x[2]),len(x[3]),len(x[4]),len(x[5]),len(x[6])]
 
+videoEachFrame=[]
 for i in range(videoNum) :
+    videoEachFrame.append(len(x[i]))
     if i==0 :
         print('videoFrame : ',end=' ')
     print(videoEachFrame[i],end=' ')
@@ -227,7 +229,7 @@ for num in range(len(averageCostMat)) :
     path.append( reversePathFind(averageCostMat[num]) )
     path[num] = np.asarray(path[num],dtype=object)
 path = np.asarray(path,dtype=object) # path[6][baseVideoMatchingIndex][MatchingVideoIndex]
-
+print(path)
 ####################################Link index####################################
 LinkPath = np.zeros((len(path[0]), videoNum))
 for index in range(len(LinkPath)) :
@@ -240,41 +242,23 @@ for num in range(1,len(path)):
                 if LinkPath[index][0] == path[num][index2][0] :
                     LinkPath[index][num+1] = path[num][index2][1]
 # print(path)
+print("LinkPath :")
 print(LinkPath)
-####################################Video execute####################################
-video,cap = [], []
-image = []
-for num in range(videoNum) :
-    video.append(f"../video/front{num+1}.mp4")
-    cap.append(cv2.VideoCapture(video[num]))
-    image.append(0)
-frame = 0
-while frame<len(LinkPath) :
-    for num in range(videoNum) :
-        cap[num].set(cv2.CAP_PROP_POS_FRAMES,LinkPath[frame][num])
-        image[num]=cap[num].read()[1]
-    img = cv2.hconcat([image[0],image[1],image[2],image[3],image[4],image[5],image[6]])
-    cv2.imshow("Video",img)
-    frame+=1
-    print(frame)
-    if cv2.waitKey(5) & 0xFF == 'q' :
-        break
-cap.release()
-# video = "../video/front1.mp4"
-# video2 = "../video/front2.mp4"
-# cap = cv2.VideoCapture(video)
-# cap2 = cv2.VideoCapture(video2)
-# frame=0
-# while frame<len(path):
-#     cap.set(cv2.CAP_PROP_POS_FRAMES, path[frame][0])
-#     cap2.set(cv2.CAP_PROP_POS_FRAMES, path[frame][1])
-#     success, image = cap.read()
-#     success2, image2 = cap2.read()
-#     img = cv2.hconcat([image, image2]) 
-#     if not (success or success2):
-#         break
-#     cv2.imshow("VideoFrame",img)
+# video,cap = [], []
+# image = []
+# for num in range(videoNum) :
+#     video.append(f"../video/front{num+1}.mp4")
+#     cap.append(cv2.VideoCapture(video[num]))
+#     image.append(0)
+# frame = 0
+# while frame<len(LinkPath) :
+#     for num in range(videoNum) :
+#         cap[num].set(cv2.CAP_PROP_POS_FRAMES,LinkPath[frame][num])
+#         image[num]=cap[num].read()[1]
+#     img = cv2.hconcat([image[0],image[1],image[2],image[3],image[4],image[5],image[6]])
+#     cv2.imshow("Video",img)
 #     frame+=1
-#     if cv2.waitKey(5) & 0xFF == 27:
+#     print(frame)
+#     if cv2.waitKey(5) & 0xFF == 'q' :
 #         break
 # cap.release()
