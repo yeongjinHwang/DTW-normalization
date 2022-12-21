@@ -43,14 +43,14 @@ with mp_pose.Pose(
         results.pose_world_landmarks, mp_pose.POSE_CONNECTIONS)
 
 videoPath = "../video/"
-videoName = "front"
+videoName = "pro1_iron"
 videoNum=7
 ####################################video data road####################################
 x, y = [[], [], [], [], [], [], []], [[], [], [], [], [], [], []]  # (7, f, 33)
 tmpx, tmpy = [], []
 
 for i in range(1,videoNum+1):
-    video = videoPath + videoName + "%d.mp4" % (i) 
+    video = videoPath + videoName + "%d.mp4" % (i)
     cap = cv2.VideoCapture(video)
     width  = int(cap.get(3)) # float
     height = int(cap.get(4)) # float
@@ -63,6 +63,7 @@ for i in range(1,videoNum+1):
                     break
                 # To improve performance, optionally mark the image as not writeable to
                 # pass by reference.
+                image = image[0:960, 0:540]
                 image.flags.writeable = False
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
                 results = pose.process(image)
@@ -76,6 +77,10 @@ for i in range(1,videoNum+1):
                     mp_pose.POSE_CONNECTIONS,
                     landmark_drawing_spec=mp_drawing_styles.get_default_pose_landmarks_style())
                 for j in range(33):
+                    if results.pose_landmarks==None :
+                        tmpx.append(0.00001)
+                        tmpy.append(0.00001)
+                        continue
                     tmpx.append(round(results.pose_landmarks.landmark[j].x*width))
                     tmpy.append(round(results.pose_landmarks.landmark[j].y*height))
                 x[i-1].append(tmpx)
@@ -95,8 +100,9 @@ print('data set complete')
 #x[0][:][0] 첫 영상 모든 프레임 0번관절
 
 
-videoEachFrame=[]
+videoEachFrame,angle = [], []
 for i in range(videoNum) :
+    angle.append([])
     videoEachFrame.append(len(x[i]))
     if i==0 :
         print('videoFrame : ',end=' ')
@@ -125,12 +131,12 @@ matchIndex=[[12,11],[12,24],[11,23],[24,23],[24,26],[23,25],[26,28],[25,27],[28,
 
 #x[video][frame][angle]
 #angle = [video][frame][angle1...angle14]
-angle = [[], [], [], [], [], [], []]
 
 for i in range(videoNum) :
     for frameNum in range(videoEachFrame[i]) :
         temp = []
         for idx in range(len(matchIndex)):
+            ##print(idx) 지금 여기서 오류
             temp.append(angle_of_vectors([x[i][frameNum][matchIndex[idx][0]],y[i][frameNum][matchIndex[idx][0]]],
             [x[i][frameNum][matchIndex[idx][1]],y[i][frameNum][matchIndex[idx][1]]]))
         angle[i].append(temp)
