@@ -3,6 +3,11 @@ import mediapipe as mp
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
+import pandas as pd
+import math
+from matplotlib.patches import ConnectionPatch
+import scipy.spatial.distance as dist
+import pandas as pd
 
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
@@ -111,8 +116,6 @@ for i in range(videoNum) :
         print(' ')
 
 ####################################data(x,y)->data(angle)####################################
-import math
-
 def angle_of_vectors(vec1,vec2) :
     a,b,c,d=vec1[0],vec1[1],vec2[0],vec2[1]
     dotProduct = a*c + b*d
@@ -141,9 +144,6 @@ for i in range(videoNum) :
             [x[i][frameNum][matchIndex[idx][1]],y[i][frameNum][matchIndex[idx][1]]]))
         angle[i].append(temp)
 ####################################DTW####################################
-
-from matplotlib.patches import ConnectionPatch
-import scipy.spatial.distance as dist
 
 def dp(dist_mat):
     N, M = dist_mat.shape
@@ -235,25 +235,37 @@ for num in range(len(averageCostMat)) :
     path.append( reversePathFind(averageCostMat[num]) )
     path[num] = np.asarray(path[num],dtype=object)
 path = np.asarray(path,dtype=object) # path[6][baseVideoMatchingIndex][MatchingVideoIndex]
-print(path)
-####################################Link index####################################
-LinkPath = np.zeros((len(path[0]), videoNum))
-for index in range(len(LinkPath)) :
-    LinkPath[index][0] = path[0][index][0]
-    LinkPath[index][1] = path[0][index][1]
 
-for num in range(1,len(path)):
+pathDf = pd.DataFrame(path)
+pathDf.to_csv('path.txt',index=False,sep='\t')
+####################################Link index####################################
+# LinkPath = np.full((videoEachFrame[0], videoNum),videoEachFrame[0]-1)
+
+# for index in range(len(LinkPath)) :
+#     LinkPath[index][0] = index
+
+# for num in range(0,len(path)):
+#     for linkIndex in range(len(LinkPath)) :
+#         for pathIndex in range(min(len(LinkPath),len(path[num]))) :
+#             if LinkPath[linkIndex][0] == path[num][pathIndex][0] :
+#                 LinkPath[linkIndex][num+1] = path[num][pathIndex][1]
+LinkPath = np.zeros((videoEachFrame[0], videoNum))
+for index in range(len(LinkPath)) :
+    LinkPath[index][0] = index
+
+for num in range(len(path)):
     for index in range(len(LinkPath)) :
-        for index2 in range(min(len(LinkPath),len(path[num]))) :
+        for index2 in range(max(len(LinkPath),len(path[num]))) :
                 if LinkPath[index][0] == path[num][index2][0] :
                     LinkPath[index][num+1] = path[num][index2][1]
-# print(path)
-print("LinkPath :")
-print(LinkPath)
+
+linkDf = pd.DataFrame(LinkPath)
+linkDf.to_csv('linkPath.txt',index=False,sep='\t')
+
 # video,cap = [], []
 # image = []
 # for num in range(videoNum) :
-#     video.append(f"../video/front{num+1}.mp4")
+#     video.append(f"../video/pro1_iron{num+1}.mp4")
 #     cap.append(cv2.VideoCapture(video[num]))
 #     image.append(0)
 # frame = 0
@@ -261,10 +273,9 @@ print(LinkPath)
 #     for num in range(videoNum) :
 #         cap[num].set(cv2.CAP_PROP_POS_FRAMES,LinkPath[frame][num])
 #         image[num]=cap[num].read()[1]
-#     img = cv2.hconcat([image[0],image[1],image[2],image[3],image[4],image[5],image[6]])
+#         image[num] = image[num][0:960, 0:540]
+#     img = cv2.hconcat([image[0],image[1],image[2],image[3],image[4],image[5],image[6],image[7]])
 #     cv2.imshow("Video",img)
 #     frame+=1
-#     print(frame)
 #     if cv2.waitKey(5) & 0xFF == 'q' :
 #         break
-# cap.release()
