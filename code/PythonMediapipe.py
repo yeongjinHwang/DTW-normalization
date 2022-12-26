@@ -8,6 +8,8 @@ import math
 from matplotlib.patches import ConnectionPatch
 import scipy.spatial.distance as dist
 import pandas as pd
+from numpy.linalg import norm
+from numpy import dot
 
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
@@ -145,6 +147,8 @@ for i in range(videoNum) :
             temp.append(angle_of_vectors([x[i][frameNum][matchIndex[idx][0]],y[i][frameNum][matchIndex[idx][0]]],
             [x[i][frameNum][matchIndex[idx][1]],y[i][frameNum][matchIndex[idx][1]]]))
         angle[i].append(temp)
+angleDf = pd.DataFrame(angle)
+angleDf.to_csv('angle.txt',index=False,sep='\t')
 ####################################DTW####################################
 
 def dp(dist_mat):
@@ -239,7 +243,7 @@ for num in range(len(averageCostMat)) :
 path = np.asarray(path,dtype=object) # path[6][baseVideoMatchingIndex][MatchingVideoIndex]
 
 pathDf = pd.DataFrame(path)
-pathDf.to_csv('path.txt',index=False,sep=' ')
+pathDf.to_csv('path.txt',index=False,sep='\t')
 ####################################Link index####################################
 # LinkPath = np.full((videoEachFrame[0], videoNum),videoEachFrame[0]-1)
 
@@ -267,11 +271,26 @@ linkDf.to_csv('linkPath.txt',index=False,sep='\t')
 ####################################Average Value####################################
 averValue = np.zeros((videoEachFrame[0],len(matchIndex)))
 minLossCnt = np.zeros((videoNum,1))
+
 for frame in range(len(LinkPath)) :
     for joint in range(len(matchIndex)) :
         for num in range(videoNum) :
             averValue[frame][joint] = averValue[frame][joint] + angle[num][int(LinkPath[frame][num])][joint]
 averValue = averValue/videoNum
+
+def cos_sim(A, B):
+  return dot(A, B)/(norm(A)*norm(B))
+
+def cosSim(aver,original):
+  a=[prevX[indexA] - prevX[indexB],prevY[indexA] - prevY[indexB]]
+  b=[curX[indexA] - curX[indexB],curY[indexA] - curY[indexB]]
+  return cos_sim(a,b)
+
+minCntDf = pd.DataFrame(minLossCnt)
+minCntDf.to_csv('minLossCnt.txt',index=False,sep='\t')
+averAngleDf = pd.DataFrame(averValue)
+averAngleDf.to_csv('averAngle.txt',index=False,sep='\t')
+
 
 # video,cap = [], []
 # image = []

@@ -1,7 +1,6 @@
 import numpy as np
 averValue = np.zeros((8,1))
-angle = [[1,2,3,4,5,6,7,8],[1,2,3,4,5,6,7,9],[1,2,3,4,5,6,7,10],[1,2,3,4,5,6,7,11],...
-        ,[1,2,3,4,5,6,7,12],[1,2,3,4,5,6,7,13],[1,2,3,4,5,6,7,14],[1,2,3,4,5,6,7,15]]
-
-averValue[0][0] = sum(angle[:][0])
+averValue[1][0]=1
+averValue[5][0]=5
 print(averValue)
+print((averValue[:]))
