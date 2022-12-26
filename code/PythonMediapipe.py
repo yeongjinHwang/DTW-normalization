@@ -49,12 +49,14 @@ with mp_pose.Pose(
 
 videoPath = "../video/"
 videoName = "pro1_iron"
-videoNum=7
+videoNum=8
 ####################################video data road####################################
-x, y = [[], [], [], [], [], [], []], [[], [], [], [], [], [], []]  # (7, f, 33)
+x, y = [], []  # (7, f, 33)
 tmpx, tmpy = [], []
 
 for i in range(1,videoNum+1):
+    x.append([])
+    y.append([])
     video = videoPath + videoName + "%d.mp4" % (i)
     cap = cv2.VideoCapture(video)
     width  = int(cap.get(3)) # float
@@ -182,14 +184,15 @@ def dp(dist_mat):
     cost_mat = cost_mat[1:, 1:]
     return (path[::-1], cost_mat)
 
-dist_mat, N, M, path= [],[],[],[]
+dist_mat, N, M, path, cost_mat = [],[],[],[], []
 for i in range(videoNum-1) :
+    cost_mat.append([])
     dist_mat.append(np.zeros((videoEachFrame[0],videoEachFrame[i+1])))
     N.append(videoEachFrame[0])
     M.append(videoEachFrame[i+1])
 
 ####################################TOTAL average DTW####################################
-cost_mat = [[],[],[],[],[],[]] # cost_mat[video][joint][videoframe][video+1frame]
+# cost_mat[video][joint][videoframe][video+1frame]
 for num in range(len(dist_mat)) : 
     for k in range(len(matchIndex)) :
         for i in range(N[num]) :
@@ -201,7 +204,6 @@ for num in range(len(cost_mat)):
     cost_mat[num] = np.asarray(cost_mat[num],dtype=object)
 
 averageCostMat, path, least = [], [], []
-
 for num in range(len(cost_mat)) :
     averageCostMat.append([])
     for joint in range(1,len(matchIndex)): 
@@ -237,7 +239,7 @@ for num in range(len(averageCostMat)) :
 path = np.asarray(path,dtype=object) # path[6][baseVideoMatchingIndex][MatchingVideoIndex]
 
 pathDf = pd.DataFrame(path)
-pathDf.to_csv('path.txt',index=False,sep='\t')
+pathDf.to_csv('path.txt',index=False,sep=' ')
 ####################################Link index####################################
 # LinkPath = np.full((videoEachFrame[0], videoNum),videoEachFrame[0]-1)
 
@@ -262,20 +264,23 @@ for num in range(len(path)):
 linkDf = pd.DataFrame(LinkPath)
 linkDf.to_csv('linkPath.txt',index=False,sep='\t')
 
-# video,cap = [], []
-# image = []
-# for num in range(videoNum) :
-#     video.append(f"../video/pro1_iron{num+1}.mp4")
-#     cap.append(cv2.VideoCapture(video[num]))
-#     image.append(0)
-# frame = 0
-# while frame<len(LinkPath) :
-#     for num in range(videoNum) :
-#         cap[num].set(cv2.CAP_PROP_POS_FRAMES,LinkPath[frame][num])
-#         image[num]=cap[num].read()[1]
-#         image[num] = image[num][0:960, 0:540]
-#     img = cv2.hconcat([image[0],image[1],image[2],image[3],image[4],image[5],image[6],image[7]])
-#     cv2.imshow("Video",img)
-#     frame+=1
-#     if cv2.waitKey(5) & 0xFF == 'q' :
-#         break
+####################################Average Value####################################
+
+
+video,cap = [], []
+image = []
+for num in range(videoNum) :
+    video.append(f"../video/pro1_iron{num+1}.mp4")
+    cap.append(cv2.VideoCapture(video[num]))
+    image.append(0)
+frame = 0
+while frame<len(LinkPath) :
+    for num in range(videoNum) :
+        cap[num].set(cv2.CAP_PROP_POS_FRAMES,LinkPath[frame][num])
+        image[num]=cap[num].read()[1]
+        image[num] = image[num][0:960, 0:540]
+    img = cv2.hconcat([image[0],image[1],image[2],image[3],image[4],image[5],image[6],image[7]])
+    cv2.imshow("Video",img)
+    frame+=1
+    if cv2.waitKey(5) & 0xFF == 'q' :
+        break
