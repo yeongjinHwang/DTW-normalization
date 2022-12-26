@@ -114,7 +114,7 @@ for i in range(videoNum) :
     if i==0 :
         print('videoFrame : ',end=' ')
     print(videoEachFrame[i],end=' ')
-    if i==6 :
+    if i==videoNum-1 :
         print(' ')
 
 ####################################data(x,y)->data(angle)####################################
@@ -252,35 +252,41 @@ pathDf.to_csv('path.txt',index=False,sep=' ')
 #             if LinkPath[linkIndex][0] == path[num][pathIndex][0] :
 #                 LinkPath[linkIndex][num+1] = path[num][pathIndex][1]
 LinkPath = np.zeros((videoEachFrame[0], videoNum))
-for index in range(len(LinkPath)) :
-    LinkPath[index][0] = index
+for frame in range(len(LinkPath)) :
+    LinkPath[frame][0] = frame
 
 for num in range(len(path)):
-    for index in range(len(LinkPath)) :
-        for index2 in range(max(len(LinkPath),len(path[num]))) :
-                if LinkPath[index][0] == path[num][index2][0] :
-                    LinkPath[index][num+1] = path[num][index2][1]
+    for frame in range(len(LinkPath)) :
+        for match in range(max(len(LinkPath),len(path[num]))) :
+                if LinkPath[frame][0] == path[num][match][0] :
+                    LinkPath[frame][num+1] = path[num][match][1]
 
 linkDf = pd.DataFrame(LinkPath)
 linkDf.to_csv('linkPath.txt',index=False,sep='\t')
 
 ####################################Average Value####################################
+averValue = np.zeros((videoEachFrame[0],len(matchIndex)))
+minLossCnt = np.zeros((videoNum,1))
+for frame in range(len(LinkPath)) :
+    for joint in range(len(matchIndex)) :
+        for num in range(videoNum) :
+            averValue[frame][joint] = averValue[frame][joint] + angle[num][int(LinkPath[frame][num])][joint]
+averValue = averValue/videoNum
 
-
-video,cap = [], []
-image = []
-for num in range(videoNum) :
-    video.append(f"../video/pro1_iron{num+1}.mp4")
-    cap.append(cv2.VideoCapture(video[num]))
-    image.append(0)
-frame = 0
-while frame<len(LinkPath) :
-    for num in range(videoNum) :
-        cap[num].set(cv2.CAP_PROP_POS_FRAMES,LinkPath[frame][num])
-        image[num]=cap[num].read()[1]
-        image[num] = image[num][0:960, 0:540]
-    img = cv2.hconcat([image[0],image[1],image[2],image[3],image[4],image[5],image[6],image[7]])
-    cv2.imshow("Video",img)
-    frame+=1
-    if cv2.waitKey(5) & 0xFF == 'q' :
-        break
+# video,cap = [], []
+# image = []
+# for num in range(videoNum) :
+#     video.append(f"../video/pro1_iron{num+1}.mp4")
+#     cap.append(cv2.VideoCapture(video[num]))
+#     image.append(0)
+# frame = 0
+# while frame<len(LinkPath) :
+#     for num in range(videoNum) :
+#         cap[num].set(cv2.CAP_PROP_POS_FRAMES,LinkPath[frame][num])
+#         image[num]=cap[num].read()[1]
+#         image[num] = image[num][0:960, 0:540]
+#     img = cv2.hconcat([image[0],image[1],image[2],image[3],image[4],image[5],image[6],image[7]])
+#     cv2.imshow("Video",img)
+#     frame+=1
+#     if cv2.waitKey(5) & 0xFF == 'q' :
+#         break
