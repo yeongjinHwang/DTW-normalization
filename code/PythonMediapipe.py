@@ -274,6 +274,13 @@ tmpLoss = np.zeros((len(matchIndex),videoNum))
 numCnt = np.zeros((videoNum))
 averVidIndex = 0
 
+averX, averY = np.zeros((len(x),len(x[0]),len(x[0][0])))
+
+# for point in range(len(x[0][0])) :
+#     for frame in range(len(x[0])) :
+#         for num in range(len(x)) :
+            
+
 for frame in range(len(LinkPath)) :
     for joint in range(len(matchIndex)) :
         for num in range(videoNum) :
@@ -281,7 +288,6 @@ for frame in range(len(LinkPath)) :
     minLossCnt[frame][len(matchIndex)]=np.inf
 averValue = averValue/videoNum
 
-####################################loss Cnt####################################
 for frame in range(len(LinkPath)) :
     for joint in range(len(matchIndex)) :
         for num in range(videoNum) :
@@ -295,6 +301,8 @@ for vidNum in range(videoNum) :
     numCnt[vidNum] = list(minLossCnt[:,len(matchIndex)]).count(vidNum)
 
 averVidIndex = np.argmax(numCnt)
+bestVid = videoPath + videoName + "%d.mp4" % (averVidIndex+1)
+print("best Video : ",bestVid)
 
 tmpLossDf = pd.DataFrame(tmpLoss)
 tmpLossDf.to_csv('../data/tmpLoss.txt',index=False,sep='\t')
@@ -303,9 +311,36 @@ minLossCntDf.to_csv('../data/minLossCnt.txt',index=False,sep='\t')
 averValueDf = pd.DataFrame(averValue)
 averValueDf.to_csv('../data/averValue.txt',index=False,sep='\t')
 
+##cv2.line(img,시작점,끝점,color(b,g,r),thickness,lineType,shift)
+# 12-11 어깨, 12-24 왼옆구리, 11-23 오른옆구리, 24-23 허리, 24-26 왼허벅 23-25 오른허벅
+# 26-28 왼종아리, 25-27 오른종아리, 28-32 왼발등, 27-31 오른발등
+# 12-14 왼팔, 11-13 오른팔, 14-16 왼전완, 13-15 오른전완
+# matchIndex=[[12,11],[12,24],[11,23],[24,23],[24,26],[23,25],[26,28],[25,27],[28,32],[27,31],
+#            [12,14],[11,13],[14,16],[13,15]]
 
+def drawAngle(img,xStart,yStart,averAngle,length) :
+    angleLen = len(angle)
+    for i in range(angleLen) :
+        angle = averAngle[i]
+        yEnd = yStart + int(np.sin(np.pi / 180 * angle)*length)
+        xEnd = xStart + int(np.cos(np.pi / 180 * angle)*length)
+        cv2.line(img,(xStart,yStart),(xEnd,yEnd),(255,255,255),3)
 
-
+video, frame = bestVid, 0
+cap = cv2.VideoCapture(video)
+width  = int(cap.get(3)) 
+height = int(cap.get(4)) 
+while frame<len(LinkPath) :      
+    backgroundImage = np.zeros((960,540,3), np.uint8)  
+    drawAngle(backgroundImage,x,y,averAngle[frame],3)
+    cap.set(cv2.CAP_PROP_POS_FRAMES,LinkPath[frame][num])
+    image = cap.read()[1]
+    image = image[0:960, 0:540]
+    img = cv2.hconcat([image, backgroundImage])
+    cv2.imshow("video",img)
+    frame+=1
+    if cv2.waitKey(5) & 0xFF == 'q' :
+        break
 # video,cap = [], []
 # image = []
 # for num in range(videoNum) :
