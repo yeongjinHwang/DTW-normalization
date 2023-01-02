@@ -147,8 +147,9 @@ for i in range(videoNum) :
             temp.append(angle_of_vectors([x[i][frameNum][matchIndex[idx][0]],y[i][frameNum][matchIndex[idx][0]]],
             [x[i][frameNum][matchIndex[idx][1]],y[i][frameNum][matchIndex[idx][1]]]))
         angle[i].append(temp)
-angleDf = pd.DataFrame(angle)
-angleDf.to_csv('angle.txt',index=False,sep='\t')
+
+    angleDf = pd.DataFrame(angle[i])
+    angleDf.to_csv('../data/angle%d.txt'%(i),index=False, sep='\t')
 ####################################DTW####################################
 
 def dp(dist_mat):
@@ -242,8 +243,6 @@ for num in range(len(averageCostMat)) :
     path[num] = np.asarray(path[num],dtype=object)
 path = np.asarray(path,dtype=object) # path[6][baseVideoMatchingIndex][MatchingVideoIndex]
 
-pathDf = pd.DataFrame(path)
-pathDf.to_csv('path.txt',index=False,sep='\t')
 ####################################Link index####################################
 # LinkPath = np.full((videoEachFrame[0], videoNum),videoEachFrame[0]-1)
 
@@ -266,30 +265,45 @@ for num in range(len(path)):
                     LinkPath[frame][num+1] = path[num][match][1]
 
 linkDf = pd.DataFrame(LinkPath)
-linkDf.to_csv('linkPath.txt',index=False,sep='\t')
+linkDf.to_csv('../data/linkPath.txt',index=False,sep='\t')
 
 ####################################Average Value####################################
 averValue = np.zeros((videoEachFrame[0],len(matchIndex)))
-minLossCnt = np.zeros((videoNum,1))
+minLossCnt = np.zeros((videoEachFrame[0],len(matchIndex)+1))
+tmpLoss = np.zeros((len(matchIndex),videoNum))
+numCnt = np.zeros((videoNum))
+averVidIndex = 0
 
 for frame in range(len(LinkPath)) :
     for joint in range(len(matchIndex)) :
         for num in range(videoNum) :
             averValue[frame][joint] = averValue[frame][joint] + angle[num][int(LinkPath[frame][num])][joint]
+    minLossCnt[frame][len(matchIndex)]=np.inf
 averValue = averValue/videoNum
 
-def cos_sim(A, B):
-  return dot(A, B)/(norm(A)*norm(B))
+####################################loss Cnt####################################
+for frame in range(len(LinkPath)) :
+    for joint in range(len(matchIndex)) :
+        for num in range(videoNum) :
+            tmpLoss[joint][num] = abs(averValue[frame][joint] - angle[num][frame][joint])
+        minLossCnt[frame][joint] = np.argmin(tmpLoss[joint])
+    for vidNum in range(videoNum) :
+        numCnt[vidNum]=list(minLossCnt[frame]).count(vidNum)
+    minLossCnt[frame][len(matchIndex)] = np.argmax(numCnt)
 
-def cosSim(aver,original):
-  a=[prevX[indexA] - prevX[indexB],prevY[indexA] - prevY[indexB]]
-  b=[curX[indexA] - curX[indexB],curY[indexA] - curY[indexB]]
-  return cos_sim(a,b)
+for vidNum in range(videoNum) :
+    numCnt[vidNum] = list(minLossCnt[:,len(matchIndex)]).count(vidNum)
 
-minCntDf = pd.DataFrame(minLossCnt)
-minCntDf.to_csv('minLossCnt.txt',index=False,sep='\t')
-averAngleDf = pd.DataFrame(averValue)
-averAngleDf.to_csv('averAngle.txt',index=False,sep='\t')
+averVidIndex = np.argmax(numCnt)
+
+tmpLossDf = pd.DataFrame(tmpLoss)
+tmpLossDf.to_csv('../data/tmpLoss.txt',index=False,sep='\t')
+minLossCntDf = pd.DataFrame(minLossCnt)
+minLossCntDf.to_csv('../data/minLossCnt.txt',index=False,sep='\t')
+averValueDf = pd.DataFrame(averValue)
+averValueDf.to_csv('../data/averValue.txt',index=False,sep='\t')
+
+
 
 
 # video,cap = [], []
