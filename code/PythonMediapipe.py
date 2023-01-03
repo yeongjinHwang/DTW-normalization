@@ -121,8 +121,8 @@ for i in range(videoNum) :
 
 ####################################data(x,y)->data(angle)####################################
 def angle_of_vectors(vec1,vec2) :
-    a,b,c,d=vec1[0],vec1[1],vec2[0],vec2[1]
-    dotProduct = a*c + b*d
+    a,b,c,d=vec1[0],vec1[1],vec2[0],vec2[1] 
+    dotProduct = a*c + b*d 
     modOfVector1 = math.sqrt( a*a + b*b)*math.sqrt(c*c + d*d) 
     angle = dotProduct/modOfVector1
     if angle>1 :
@@ -269,12 +269,12 @@ linkDf.to_csv('../data/linkPath.txt',index=False,sep='\t')
 
 ####################################Average Value####################################
 averValue = np.zeros((videoEachFrame[0],len(matchIndex)))
-minLossCnt = np.zeros((videoEachFrame[0],len(matchIndex)+1))
-tmpLoss = np.zeros((len(matchIndex),videoNum))
+minDiffCnt = np.zeros((videoEachFrame[0],len(matchIndex)+1))
+tmpDiff = np.zeros((len(matchIndex),videoNum))
 numCnt = np.zeros((videoNum))
 averVidIndex = 0
 
-averX, averY = np.zeros((len(x),len(x[0]),len(x[0][0])))
+averX, averY = np.zeros((len(x),len(x[0]),len(x[0][0]))), np.zeros((len(y),len(y[0]),len(y[0][0])))
 
 # for point in range(len(x[0][0])) :
 #     for frame in range(len(x[0])) :
@@ -285,29 +285,29 @@ for frame in range(len(LinkPath)) :
     for joint in range(len(matchIndex)) :
         for num in range(videoNum) :
             averValue[frame][joint] = averValue[frame][joint] + angle[num][int(LinkPath[frame][num])][joint]
-    minLossCnt[frame][len(matchIndex)]=np.inf
+    minDiffCnt[frame][len(matchIndex)]=np.inf
 averValue = averValue/videoNum
 
 for frame in range(len(LinkPath)) :
     for joint in range(len(matchIndex)) :
         for num in range(videoNum) :
-            tmpLoss[joint][num] = abs(averValue[frame][joint] - angle[num][frame][joint])
-        minLossCnt[frame][joint] = np.argmin(tmpLoss[joint])
+            tmpDiff[joint][num] = abs(averValue[frame][joint] - angle[num][frame][joint])
+        minDiffCnt[frame][joint] = np.argmin(tmpDiff[joint])
     for vidNum in range(videoNum) :
-        numCnt[vidNum]=list(minLossCnt[frame]).count(vidNum)
-    minLossCnt[frame][len(matchIndex)] = np.argmax(numCnt)
+        numCnt[vidNum]=list(minDiffCnt[frame]).count(vidNum)
+    minDiffCnt[frame][len(matchIndex)] = np.argmax(numCnt)
 
 for vidNum in range(videoNum) :
-    numCnt[vidNum] = list(minLossCnt[:,len(matchIndex)]).count(vidNum)
+    numCnt[vidNum] = list(minDiffCnt[:,len(matchIndex)]).count(vidNum)
 
 averVidIndex = np.argmax(numCnt)
 bestVid = videoPath + videoName + "%d.mp4" % (averVidIndex+1)
 print("best Video : ",bestVid)
 
-tmpLossDf = pd.DataFrame(tmpLoss)
-tmpLossDf.to_csv('../data/tmpLoss.txt',index=False,sep='\t')
-minLossCntDf = pd.DataFrame(minLossCnt)
-minLossCntDf.to_csv('../data/minLossCnt.txt',index=False,sep='\t')
+tmpDiffDf = pd.DataFrame(tmpDiff)
+tmpDiffDf.to_csv('../data/tmpDiff.txt',index=False,sep='\t')
+minDiffCntDf = pd.DataFrame(minDiffCnt)
+minDiffCntDf.to_csv('../data/minDiffCnt.txt',index=False,sep='\t')
 averValueDf = pd.DataFrame(averValue)
 averValueDf.to_csv('../data/averValue.txt',index=False,sep='\t')
 
