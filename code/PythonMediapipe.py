@@ -318,29 +318,39 @@ averValueDf.to_csv('../data/averValue.txt',index=False,sep='\t')
 # matchIndex=[[12,11],[12,24],[11,23],[24,23],[24,26],[23,25],[26,28],[25,27],[28,32],[27,31],
 #            [12,14],[11,13],[14,16],[13,15]]
 
-def drawAngle(img,xStart,yStart,averAngle,length) :
-    angleLen = len(angle)
-    for i in range(angleLen) :
-        angle = averAngle[i]
-        yEnd = yStart + int(np.sin(np.pi / 180 * angle)*length)
-        xEnd = xStart + int(np.cos(np.pi / 180 * angle)*length)
-        cv2.line(img,(xStart,yStart),(xEnd,yEnd),(255,255,255),3)
-
 video, frame = bestVid, 0
 cap = cv2.VideoCapture(video)
-width  = int(cap.get(3)) 
-height = int(cap.get(4)) 
-while frame<len(LinkPath) :      
-    backgroundImage = np.zeros((960,540,3), np.uint8)  
-    drawAngle(backgroundImage,x,y,averAngle[frame],3)
-    cap.set(cv2.CAP_PROP_POS_FRAMES,LinkPath[frame][num])
-    image = cap.read()[1]
-    image = image[0:960, 0:540]
-    img = cv2.hconcat([image, backgroundImage])
-    cv2.imshow("video",img)
-    frame+=1
-    if cv2.waitKey(5) & 0xFF == 'q' :
-        break
+width  = int(cap.get(3)) # float
+height = int(cap.get(4)) # float
+with mp_pose.Pose(
+    min_detection_confidence=0.5,
+    min_tracking_confidence=0.5) as pose:
+        while frame<videoEachFrame[averVidIndex]:
+            backgroundImage = np.zeros((960,540,3), np.uint8)  
+            cap.set(cv2.CAP_PROP_POS_FRAMES,LinkPath[frame][averVidIndex])
+            success, image = cap.read()
+            if not success:
+                break
+            image = image[0:960, 0:540]
+            image.flags.writeable = False
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            results = pose.process(image)
+
+            # Draw the pose annotation on the image.
+            image.flags.writeable = True
+            image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+            mp_drawing.draw_landmarks(
+                backgroundImage,
+                results.pose_landmarks,
+                mp_pose.POSE_CONNECTIONS,
+                landmark_drawing_spec=mp_drawing_styles.get_default_pose_landmarks_style())
+
+            image = cv2.hconcat([image, backgroundImage])
+            cv2.imshow('MediaPipe Pose', cv2.flip(image, 1))
+            frame+=1
+            if cv2.waitKey(5) & 0xFF == 27:
+                break
+        cap.release()
 # video,cap = [], []
 # image = []
 # for num in range(videoNum) :
