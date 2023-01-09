@@ -15,7 +15,7 @@ ex) python PyhtonMediapipe.py ../video/ama_driver/
 
 
 |videoName|bestVid|CloseFrameCnt|
-|---|---|---|
+|---|---|-|-|-|
 |ama_driver         |   1   |59	31	5	34	17	34|
 |ama_iron           |   1   |49	44	33	19	24	11|
 |amagirl_driver     |   1   |52	26	36	16	16	25	9|
