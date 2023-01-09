@@ -13,20 +13,22 @@ ex) python PyhtonMediapipe.py ../video/ama_driver/
 현재 progirl_iron, progirl_driver  << 문제 큼
 또한 1번을 기준으로 dtw를 돌려 1번이 평균과 가깝다고 뜰 확률 높음
 
-				        bestVid			    	    closeFrameCnt
-								            	    1	2	3	4	5	6	7	8	9	10
-ama_driver			    ama_driver1.mp4			    59	31	5	34	17	34
-ama_iron			    ama_iron1.mp4			    49	44	33	19	24	11
-amagirl_driver		    amagirl_driver1.mp4		    52	26	36	16	16	25	9
-amagirl_iron		    amagirl_iron1.mp4			97	23	17	11	21	11
-pro1_driver			    pro1_driver4.mp4			17	39	17	46	19	19	10	13
-pro1_iron			    pro1_iron6.mp4			    30	36	12	13	13	41	20	15
-pro2_driver			    pro2_driver1.mp4			102	37	6	8	12	11	4
-pro2_iron			    pro2_iron4.mp4			    45	0	22	63	12	6	24	8
-pro3_driver			    pro3_driver1.mp4			40	25	23	21	14	35	12	10
-pro3_iron			    pro3_iron1.mp4			    55	22	13	21	2	16	24	27
-progirl_driver		    progirl_driver2.mp4		    4	66	24	10	12	7	12	16	9	20
-progirl_iron			progirl_iron1.mp4			122	4	5	4	36	1	5	3	
+
+|videoName|bestVid|CloseFrameCnt|
+|---|---|---|
+|ama_driver         |   1   |59	31	5	34	17	34|
+|ama_iron           |   1   |49	44	33	19	24	11|
+|amagirl_driver     |   1   |52	26	36	16	16	25	9|
+|amagirl_iron       |   1   |97	23	17	11	21	11|
+|pro1_driver        |   4   |17	39	17	46	19	19	10	13||
+|pro1_iron          |   6   |30	36	12	13	13	41	20	15|
+|pro2_driver        |   1   |102	37	6	8	12	11	4|
+|pro2_iron          |   4   |45	0	22	63	12	6	24	8|
+|pro3_driver        |   1   |40	25	23	21	14	35	12	10|
+|pro3_iron          |   1   |55	22	13	21	2	16	24	27|
+|progirl_driver     |   2   |4	66	24	10	12	7	12	16	9	20|
+|progirl_iron       |   1   |122	4	5	4	36	1	5	3|
+
 
 dtw를 video1기준으로 matching을 하기때문에 평균과 근사한 video로 1이 많이 검출됨. → 문제 해결 필요
 
