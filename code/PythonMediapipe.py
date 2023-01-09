@@ -12,6 +12,8 @@ from numpy.linalg import norm
 from numpy import dot
 import os
 
+videoPath = sys.argv[1]
+
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
 mp_pose = mp.solutions.pose
@@ -51,7 +53,7 @@ with mp_pose.Pose(
         results.pose_world_landmarks, mp_pose.POSE_CONNECTIONS)
 
 ####################################video select####################################
-videoPath = "../video/ama_driver/"
+
 for videoPath, dirs, videoName in os.walk(videoPath):
     videoName = sorted(videoName)
 videoNum=len(videoName)
