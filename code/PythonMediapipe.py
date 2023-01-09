@@ -346,7 +346,8 @@ with mp_pose.Pose(
                 landmark_drawing_spec=mp_drawing_styles.get_default_pose_landmarks_style())
 
             image = cv2.hconcat([image, backgroundImage])
-            cv2.imshow('MediaPipe Pose', cv2.flip(image, 1))
+            cv2.imshow('MediaPipe Pose', image)
+            cv2.putText(image, "평균과 가장 근접한 skeleton/video", (50,50), cv2.FONT_ITALIC, 1, (255,0,0), 2)
             frame+=1
             if cv2.waitKey(5) & 0xFF == 27:
                 break
