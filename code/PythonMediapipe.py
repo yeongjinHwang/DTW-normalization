@@ -11,8 +11,12 @@ import pandas as pd
 from numpy.linalg import norm
 from numpy import dot
 import os
+import re
 
 videoPath = sys.argv[1]
+if os.path.exists(videoPath)==False :
+    print('path error')
+    sys.exit()
 
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
@@ -27,6 +31,7 @@ with mp_pose.Pose(
     min_detection_confidence=0.5) as pose:
   for idx, file in enumerate(IMAGE_FILES):
     image = cv2.imread(file)
+    image = image[0:960,0:540]
     image_height, image_width, _ = image.shape
     results = pose.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
 
@@ -55,7 +60,9 @@ with mp_pose.Pose(
 ####################################video select####################################
 
 for videoPath, dirs, videoName in os.walk(videoPath):
-    videoName = sorted(videoName)
+    p = re.compile(r'\d+')
+    videoName = sorted(videoName, key=lambda s: int(p.search(s).group()))
+
 videoNum=len(videoName)
 
 ####################################video data road####################################
@@ -78,6 +85,7 @@ for i in range(videoNum):
                     break
                 # To improve performance, optionally mark the image as not writeable to
                 # pass by reference.
+                image = image[0:960,0:540]
                 image.flags.writeable = False
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
                 results = pose.process(image)
@@ -162,7 +170,7 @@ for i in range(videoNum) :
         angle[i].append(temp)
 
     angleDf = pd.DataFrame(angle[i])
-    angleDf.to_csv('../data%sangle%d.txt'%(videoPath[8:],i),index=False, sep='\t')
+    angleDf.to_csv('../data%sangle%d.txt'%(videoPath[8:],i+1),index=False, sep='\t')
 ####################################DTW####################################
 
 def dp(dist_mat):
@@ -287,8 +295,6 @@ tmpDiff = np.zeros((len(matchIndex),videoNum))
 numCnt = np.zeros((videoNum))
 averVidIndex = 0
 
-averX, averY = np.zeros((len(x),len(x[0]),len(x[0][0]))), np.zeros((len(y),len(y[0]),len(y[0][0])))
-
 # for point in range(len(x[0][0])) :
 #     for frame in range(len(x[0])) :
 #         for num in range(len(x)) :
@@ -320,6 +326,8 @@ print("best Video : ",bestVid)
 with open('../data%sbestVid.txt'%(videoPath[8:]), "w") as file:
     file.write(bestVid)
 
+closeCntDf = pd.DataFrame(numCnt)
+closeCntDf.to_csv('../data%scloseCnt.txt'%(videoPath[8:]),index=False,sep='\t')
 tmpDiffDf = pd.DataFrame(tmpDiff)
 tmpDiffDf.to_csv('../data%stmpDiff.txt'%(videoPath[8:]),index=False,sep='\t')
 minDiffCntDf = pd.DataFrame(minDiffCnt)
