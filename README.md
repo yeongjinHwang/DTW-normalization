@@ -15,7 +15,7 @@ ex) python PyhtonMediapipe.py ../video/ama_driver/
 
 
 |videoName|bestVid|CloseFrameCnt|
-|---|---|-|-|-|
+|---|---|---|
 |ama_driver         |   1   |59	31	5	34	17	34|
 |ama_iron           |   1   |49	44	33	19	24	11|
 |amagirl_driver     |   1   |52	26	36	16	16	25	9|
@@ -28,7 +28,6 @@ ex) python PyhtonMediapipe.py ../video/ama_driver/
 |pro3_iron          |   1   |55	22	13	21	2	16	24	27|
 |progirl_driver     |   2   |4	66	24	10	12	7	12	16	9	20|
 |progirl_iron       |   1   |122	4	5	4	36	1	5	3|
-
 
 dtw를 video1기준으로 matching을 하기때문에 평균과 근사한 video로 1이 많이 검출됨. → 문제 해결 필요
 
