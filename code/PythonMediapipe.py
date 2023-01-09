@@ -10,6 +10,7 @@ import scipy.spatial.distance as dist
 import pandas as pd
 from numpy.linalg import norm
 from numpy import dot
+import os
 
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
@@ -49,17 +50,20 @@ with mp_pose.Pose(
     mp_drawing.plot_landmarks(
         results.pose_world_landmarks, mp_pose.POSE_CONNECTIONS)
 
-videoPath = "../video/"
-videoName = "pro1_iron"
-videoNum=8
+####################################video select####################################
+videoPath = "../video/ama_driver/"
+for videoPath, dirs, videoName in os.walk(videoPath):
+    videoName = sorted(videoName)
+videoNum=len(videoName)
+
 ####################################video data road####################################
 x, y = [], []  # (7, f, 33)
 tmpx, tmpy = [], []
 
-for i in range(1,videoNum+1):
+for i in range(videoNum):
     x.append([])
     y.append([])
-    video = videoPath + videoName + "%d.mp4" % (i)
+    video = videoPath+videoName[i]
     cap = cv2.VideoCapture(video)
     width  = int(cap.get(3)) # float
     height = int(cap.get(4)) # float
@@ -72,7 +76,6 @@ for i in range(1,videoNum+1):
                     break
                 # To improve performance, optionally mark the image as not writeable to
                 # pass by reference.
-                image = image[0:960, 0:540]
                 image.flags.writeable = False
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
                 results = pose.process(image)
@@ -92,8 +95,8 @@ for i in range(1,videoNum+1):
                         continue
                     tmpx.append(round(results.pose_landmarks.landmark[j].x*width))
                     tmpy.append(round(results.pose_landmarks.landmark[j].y*height))
-                x[i-1].append(tmpx)
-                y[i-1].append(tmpy)
+                x[i].append(tmpx)
+                y[i].append(tmpy)
                 tmpx=[]
                 tmpy=[]
 
@@ -107,7 +110,6 @@ print('data set complete')
 #x[0] 첫번째영상 x[1] 두번째 영상, x[0][0] 첫 영상 첫프레임의 33개 데이터
 #x[0][0][0] 첫 영상 첫 프레임 0번관절 x[0][0][1] 첫 영상 첫프레임 1번관절
 #x[0][:][0] 첫 영상 모든 프레임 0번관절
-
 
 videoEachFrame,angle = [], []
 for i in range(videoNum) :
@@ -139,6 +141,15 @@ matchIndex=[[12,11],[12,24],[11,23],[24,23],[24,26],[23,25],[26,28],[25,27],[28,
 #x[video][frame][angle]
 #angle = [video][frame][angle1...angle14]
 
+def createDirectory(directory):
+    try:
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+    except OSError:
+        print("Error: Failed to create the directory.")
+
+createDirectory('../data%s'%(videoPath[8:]))
+
 for i in range(videoNum) :
     for frameNum in range(videoEachFrame[i]) :
         temp = []
@@ -149,7 +160,7 @@ for i in range(videoNum) :
         angle[i].append(temp)
 
     angleDf = pd.DataFrame(angle[i])
-    angleDf.to_csv('../data/angle%d.txt'%(i),index=False, sep='\t')
+    angleDf.to_csv('../data%sangle%d.txt'%(videoPath[8:],i),index=False, sep='\t')
 ####################################DTW####################################
 
 def dp(dist_mat):
@@ -265,7 +276,7 @@ for num in range(len(path)):
                     LinkPath[frame][num+1] = path[num][match][1]
 
 linkDf = pd.DataFrame(LinkPath)
-linkDf.to_csv('../data/linkPath.txt',index=False,sep='\t')
+linkDf.to_csv('../data%slinkPath.txt'%(videoPath[8:]),index=False,sep='\t')
 
 ####################################Average Value####################################
 averValue = np.zeros((videoEachFrame[0],len(matchIndex)))
@@ -301,15 +312,18 @@ for vidNum in range(videoNum) :
     numCnt[vidNum] = list(minDiffCnt[:,len(matchIndex)]).count(vidNum)
 
 averVidIndex = np.argmax(numCnt)
-bestVid = videoPath + videoName + "%d.mp4" % (averVidIndex+1)
+bestVid = videoName[averVidIndex]
 print("best Video : ",bestVid)
 
+with open('../data%sbestVid.txt'%(videoPath[8:]), "w") as file:
+    file.write(bestVid)
+
 tmpDiffDf = pd.DataFrame(tmpDiff)
-tmpDiffDf.to_csv('../data/tmpDiff.txt',index=False,sep='\t')
+tmpDiffDf.to_csv('../data%stmpDiff.txt'%(videoPath[8:]),index=False,sep='\t')
 minDiffCntDf = pd.DataFrame(minDiffCnt)
-minDiffCntDf.to_csv('../data/minDiffCnt.txt',index=False,sep='\t')
+minDiffCntDf.to_csv('../data%sminDiffCnt.txt'%(videoPath[8:]),index=False,sep='\t')
 averValueDf = pd.DataFrame(averValue)
-averValueDf.to_csv('../data/averValue.txt',index=False,sep='\t')
+averValueDf.to_csv('../data%saverValue.txt'%(videoPath[8:]),index=False,sep='\t')
 
 ##cv2.line(img,시작점,끝점,color(b,g,r),thickness,lineType,shift)
 # 12-11 어깨, 12-24 왼옆구리, 11-23 오른옆구리, 24-23 허리, 24-26 왼허벅 23-25 오른허벅
@@ -318,7 +332,7 @@ averValueDf.to_csv('../data/averValue.txt',index=False,sep='\t')
 # matchIndex=[[12,11],[12,24],[11,23],[24,23],[24,26],[23,25],[26,28],[25,27],[28,32],[27,31],
 #            [12,14],[11,13],[14,16],[13,15]]
 
-video, frame = bestVid, 0
+video, frame = videoPath + bestVid, 0
 cap = cv2.VideoCapture(video)
 width  = int(cap.get(3)) # float
 height = int(cap.get(4)) # float
@@ -331,7 +345,6 @@ with mp_pose.Pose(
             success, image = cap.read()
             if not success:
                 break
-            image = image[0:960, 0:540]
             image.flags.writeable = False
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             results = pose.process(image)
