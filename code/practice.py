@@ -300,6 +300,7 @@ averVidIndex = 0
 #     for frame in range(len(x[0])) :
 #         for num in range(len(x)) :
             
+            ###########이쪽 현재 문제 ############
 averValue[:][:] = averValue[:][:] + angle[0][int(path[0][:])][:]
 for frame in range(len(videoNum)) :
     for joint in range(len(matchIndex)) :
