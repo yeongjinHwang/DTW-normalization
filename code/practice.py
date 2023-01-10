@@ -265,7 +265,6 @@ def reversePathFind(averMat) :
 path = []
 path.append( reversePathFind(averageCostMat[0]) )
 path = np.asarray(path,dtype=object) # path[6][baseVideoMatchingIndex][MatchingVideoIndex]
-
 ####################################Link index####################################
 # LinkPath = np.full((videoEachFrame[0], videoNum),videoEachFrame[0]-1)
 
@@ -301,11 +300,10 @@ averVidIndex = 0
 #     for frame in range(len(x[0])) :
 #         for num in range(len(x)) :
             
-
-for frame in range(len(LinkPath)) :
+averValue[:][:] = averValue[:][:] + angle[0][int(path[0][:])][:]
+for frame in range(len(videoNum)) :
     for joint in range(len(matchIndex)) :
-        for num in range(videoNum) :
-            averValue[frame][joint] = averValue[frame][joint] + angle[num][int(LinkPath[frame][num])][joint]
+            averValue[frame][joint] = averValue[frame][joint] + angle[num][int(path[1][])][joint]
     minDiffCnt[frame][len(matchIndex)]=np.inf
 averValue = averValue/videoNum
 
