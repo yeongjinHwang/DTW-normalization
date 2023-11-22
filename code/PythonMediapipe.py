@@ -10,6 +10,13 @@ import scipy.spatial.distance as dist
 import pandas as pd
 from numpy.linalg import norm
 from numpy import dot
+import os
+import re
+
+videoPath = sys.argv[1]
+if os.path.exists(videoPath)==False :
+    print('path error')
+    sys.exit()
 
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
@@ -24,6 +31,7 @@ with mp_pose.Pose(
     min_detection_confidence=0.5) as pose:
   for idx, file in enumerate(IMAGE_FILES):
     image = cv2.imread(file)
+    image = image[0:960,0:540]
     image_height, image_width, _ = image.shape
     results = pose.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
 
@@ -49,17 +57,22 @@ with mp_pose.Pose(
     mp_drawing.plot_landmarks(
         results.pose_world_landmarks, mp_pose.POSE_CONNECTIONS)
 
-videoPath = "../video/"
-videoName = "pro1_iron"
-videoNum=8
+####################################video select####################################
+
+for videoPath, dirs, videoName in os.walk(videoPath):
+    p = re.compile(r'\d+')
+    videoName = sorted(videoName, key=lambda s: int(p.search(s).group()))
+
+videoNum=len(videoName)
+
 ####################################video data road####################################
 x, y = [], []  # (7, f, 33)
 tmpx, tmpy = [], []
 
-for i in range(1,videoNum+1):
+for i in range(videoNum):
     x.append([])
     y.append([])
-    video = videoPath + videoName + "%d.mp4" % (i)
+    video = videoPath+videoName[i]
     cap = cv2.VideoCapture(video)
     width  = int(cap.get(3)) # float
     height = int(cap.get(4)) # float
@@ -72,7 +85,7 @@ for i in range(1,videoNum+1):
                     break
                 # To improve performance, optionally mark the image as not writeable to
                 # pass by reference.
-                image = image[0:960, 0:540]
+                image = image[0:960,0:540]
                 image.flags.writeable = False
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
                 results = pose.process(image)
@@ -92,8 +105,8 @@ for i in range(1,videoNum+1):
                         continue
                     tmpx.append(round(results.pose_landmarks.landmark[j].x*width))
                     tmpy.append(round(results.pose_landmarks.landmark[j].y*height))
-                x[i-1].append(tmpx)
-                y[i-1].append(tmpy)
+                x[i].append(tmpx)
+                y[i].append(tmpy)
                 tmpx=[]
                 tmpy=[]
 
@@ -108,7 +121,6 @@ print('data set complete')
 #x[0][0][0] 첫 영상 첫 프레임 0번관절 x[0][0][1] 첫 영상 첫프레임 1번관절
 #x[0][:][0] 첫 영상 모든 프레임 0번관절
 
-
 videoEachFrame,angle = [], []
 for i in range(videoNum) :
     angle.append([])
@@ -121,8 +133,8 @@ for i in range(videoNum) :
 
 ####################################data(x,y)->data(angle)####################################
 def angle_of_vectors(vec1,vec2) :
-    a,b,c,d=vec1[0],vec1[1],vec2[0],vec2[1]
-    dotProduct = a*c + b*d
+    a,b,c,d=vec1[0],vec1[1],vec2[0],vec2[1] 
+    dotProduct = a*c + b*d 
     modOfVector1 = math.sqrt( a*a + b*b)*math.sqrt(c*c + d*d) 
     angle = dotProduct/modOfVector1
     if angle>1 :
@@ -139,6 +151,15 @@ matchIndex=[[12,11],[12,24],[11,23],[24,23],[24,26],[23,25],[26,28],[25,27],[28,
 #x[video][frame][angle]
 #angle = [video][frame][angle1...angle14]
 
+def createDirectory(directory):
+    try:
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+    except OSError:
+        print("Error: Failed to create the directory.")
+
+createDirectory('../data%s'%(videoPath[8:]))
+
 for i in range(videoNum) :
     for frameNum in range(videoEachFrame[i]) :
         temp = []
@@ -149,7 +170,7 @@ for i in range(videoNum) :
         angle[i].append(temp)
 
     angleDf = pd.DataFrame(angle[i])
-    angleDf.to_csv('../data/angle%d.txt'%(i),index=False, sep='\t')
+    angleDf.to_csv('../data%sangle%d.txt'%(videoPath[8:],i+1),index=False, sep='\t')
 ####################################DTW####################################
 
 def dp(dist_mat):
@@ -265,16 +286,14 @@ for num in range(len(path)):
                     LinkPath[frame][num+1] = path[num][match][1]
 
 linkDf = pd.DataFrame(LinkPath)
-linkDf.to_csv('../data/linkPath.txt',index=False,sep='\t')
+linkDf.to_csv('../data%slinkPath.txt'%(videoPath[8:]),index=False,sep='\t')
 
 ####################################Average Value####################################
 averValue = np.zeros((videoEachFrame[0],len(matchIndex)))
-minLossCnt = np.zeros((videoEachFrame[0],len(matchIndex)+1))
-tmpLoss = np.zeros((len(matchIndex),videoNum))
+minDiffCnt = np.zeros((videoEachFrame[0],len(matchIndex)+1))
+tmpDiff = np.zeros((len(matchIndex),videoNum))
 numCnt = np.zeros((videoNum))
 averVidIndex = 0
-
-averX, averY = np.zeros((len(x),len(x[0]),len(x[0][0])))
 
 # for point in range(len(x[0][0])) :
 #     for frame in range(len(x[0])) :
@@ -285,31 +304,36 @@ for frame in range(len(LinkPath)) :
     for joint in range(len(matchIndex)) :
         for num in range(videoNum) :
             averValue[frame][joint] = averValue[frame][joint] + angle[num][int(LinkPath[frame][num])][joint]
-    minLossCnt[frame][len(matchIndex)]=np.inf
+    minDiffCnt[frame][len(matchIndex)]=np.inf
 averValue = averValue/videoNum
 
 for frame in range(len(LinkPath)) :
     for joint in range(len(matchIndex)) :
         for num in range(videoNum) :
-            tmpLoss[joint][num] = abs(averValue[frame][joint] - angle[num][frame][joint])
-        minLossCnt[frame][joint] = np.argmin(tmpLoss[joint])
+            tmpDiff[joint][num] = abs(averValue[frame][joint] - angle[num][frame][joint])
+        minDiffCnt[frame][joint] = np.argmin(tmpDiff[joint])
     for vidNum in range(videoNum) :
-        numCnt[vidNum]=list(minLossCnt[frame]).count(vidNum)
-    minLossCnt[frame][len(matchIndex)] = np.argmax(numCnt)
+        numCnt[vidNum]=list(minDiffCnt[frame]).count(vidNum)
+    minDiffCnt[frame][len(matchIndex)] = np.argmax(numCnt)
 
 for vidNum in range(videoNum) :
-    numCnt[vidNum] = list(minLossCnt[:,len(matchIndex)]).count(vidNum)
+    numCnt[vidNum] = list(minDiffCnt[:,len(matchIndex)]).count(vidNum)
 
 averVidIndex = np.argmax(numCnt)
-bestVid = videoPath + videoName + "%d.mp4" % (averVidIndex+1)
+bestVid = videoName[averVidIndex]
 print("best Video : ",bestVid)
 
-tmpLossDf = pd.DataFrame(tmpLoss)
-tmpLossDf.to_csv('../data/tmpLoss.txt',index=False,sep='\t')
-minLossCntDf = pd.DataFrame(minLossCnt)
-minLossCntDf.to_csv('../data/minLossCnt.txt',index=False,sep='\t')
+with open('../data%sbestVid.txt'%(videoPath[8:]), "w") as file:
+    file.write(bestVid)
+
+closeCntDf = pd.DataFrame(numCnt)
+closeCntDf.to_csv('../data%scloseCnt.txt'%(videoPath[8:]),index=False,sep='\t')
+tmpDiffDf = pd.DataFrame(tmpDiff)
+tmpDiffDf.to_csv('../data%stmpDiff.txt'%(videoPath[8:]),index=False,sep='\t')
+minDiffCntDf = pd.DataFrame(minDiffCnt)
+minDiffCntDf.to_csv('../data%sminDiffCnt.txt'%(videoPath[8:]),index=False,sep='\t')
 averValueDf = pd.DataFrame(averValue)
-averValueDf.to_csv('../data/averValue.txt',index=False,sep='\t')
+averValueDf.to_csv('../data%saverValue.txt'%(videoPath[8:]),index=False,sep='\t')
 
 ##cv2.line(img,시작점,끝점,color(b,g,r),thickness,lineType,shift)
 # 12-11 어깨, 12-24 왼옆구리, 11-23 오른옆구리, 24-23 허리, 24-26 왼허벅 23-25 오른허벅
@@ -318,29 +342,39 @@ averValueDf.to_csv('../data/averValue.txt',index=False,sep='\t')
 # matchIndex=[[12,11],[12,24],[11,23],[24,23],[24,26],[23,25],[26,28],[25,27],[28,32],[27,31],
 #            [12,14],[11,13],[14,16],[13,15]]
 
-def drawAngle(img,xStart,yStart,averAngle,length) :
-    angleLen = len(angle)
-    for i in range(angleLen) :
-        angle = averAngle[i]
-        yEnd = yStart + int(np.sin(np.pi / 180 * angle)*length)
-        xEnd = xStart + int(np.cos(np.pi / 180 * angle)*length)
-        cv2.line(img,(xStart,yStart),(xEnd,yEnd),(255,255,255),3)
-
-video, frame = bestVid, 0
+video, frame = videoPath + bestVid, 0
 cap = cv2.VideoCapture(video)
-width  = int(cap.get(3)) 
-height = int(cap.get(4)) 
-while frame<len(LinkPath) :      
-    backgroundImage = np.zeros((960,540,3), np.uint8)  
-    drawAngle(backgroundImage,x,y,averAngle[frame],3)
-    cap.set(cv2.CAP_PROP_POS_FRAMES,LinkPath[frame][num])
-    image = cap.read()[1]
-    image = image[0:960, 0:540]
-    img = cv2.hconcat([image, backgroundImage])
-    cv2.imshow("video",img)
-    frame+=1
-    if cv2.waitKey(5) & 0xFF == 'q' :
-        break
+width  = int(cap.get(3)) # float
+height = int(cap.get(4)) # float
+with mp_pose.Pose(
+    min_detection_confidence=0.5,
+    min_tracking_confidence=0.5) as pose:
+        while frame<videoEachFrame[averVidIndex]:
+            backgroundImage = np.zeros((960,540,3), np.uint8)  
+            cap.set(cv2.CAP_PROP_POS_FRAMES,LinkPath[frame][averVidIndex])
+            success, image = cap.read()
+            if not success:
+                break
+            image.flags.writeable = False
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            results = pose.process(image)
+
+            # Draw the pose annotation on the image.
+            image.flags.writeable = True
+            image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+            mp_drawing.draw_landmarks(
+                backgroundImage,
+                results.pose_landmarks,
+                mp_pose.POSE_CONNECTIONS,
+                landmark_drawing_spec=mp_drawing_styles.get_default_pose_landmarks_style())
+
+            image = cv2.hconcat([image, backgroundImage])
+            cv2.imshow('MediaPipe Pose', image)
+            cv2.putText(image, "평균과 가장 근접한 skeleton/video", (50,50), cv2.FONT_ITALIC, 1, (255,0,0), 2)
+            frame+=1
+            if cv2.waitKey(5) & 0xFF == 27:
+                break
+        cap.release()
 # video,cap = [], []
 # image = []
 # for num in range(videoNum) :
