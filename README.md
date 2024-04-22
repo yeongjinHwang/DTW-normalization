@@ -11,3 +11,4 @@ $ python PyhtonMediapipe.py
 ## Algorithm
 #### 해당 자료는 영상을 사람의 자세기반으로 frame을 matching해줍니다.
 #### 이는, 운동 영상 등을 비교함에 있어 유용하게 사용할 수 있습니다.
+#### pptx 자료 확인
